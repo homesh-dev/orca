@@ -179,6 +179,24 @@ describe('agent process recognition', () => {
     expect(isRecognizedAgentType('muse')).toBe(true)
   })
 
+  it('recognizes MuseCode by its versioned muse-bin sibling binary', () => {
+    // Why: the `muse` launcher execs `muse-bin-<version>` (a 242MB sibling),
+    // so the live foreground process carries the versioned name — truncated
+    // to `muse-bin-1.0.3-R` in macOS comm output (verified on-device).
+    expect(recognizeAgentProcess('muse-bin-1.0.3-R2198.1')).toEqual({
+      agent: 'musecode',
+      processName: 'muse-bin-1.0.3-r2198.1'
+    })
+    expect(recognizeAgentProcess('muse-bin-1.0.3-R')).toEqual({
+      agent: 'musecode',
+      processName: 'muse-bin-1.0.3-r'
+    })
+    expect(recognizeAgentProcess('/Users/dev/.local/bin/muse-bin-1.0.3-R2198.1')).toEqual({
+      agent: 'musecode',
+      processName: 'muse-bin-1.0.3-r2198.1'
+    })
+  })
+
   it('does not recognize MuseCode headless exec commands as interactive agents', () => {
     expect(recognizeAgentProcessFromCommandLine('muse exec "summarize this diff"')).toBeNull()
     expect(

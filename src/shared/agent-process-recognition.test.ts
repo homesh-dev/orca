@@ -166,6 +166,36 @@ describe('agent process recognition', () => {
     })
   })
 
+  it('recognizes MuseCode by its muse binary', () => {
+    expect(recognizeAgentProcess('muse')).toEqual({
+      agent: 'musecode',
+      processName: 'muse'
+    })
+    expect(recognizeAgentProcess('/Users/dev/.local/bin/muse')).toEqual({
+      agent: 'musecode',
+      processName: 'muse'
+    })
+    expect(isExpectedAgentProcess('/Users/dev/.local/bin/muse', 'muse')).toBe(true)
+    expect(isRecognizedAgentType('muse')).toBe(true)
+  })
+
+  it('does not recognize MuseCode headless exec commands as interactive agents', () => {
+    expect(recognizeAgentProcessFromCommandLine('muse exec "summarize this diff"')).toBeNull()
+    expect(
+      recognizeAgentProcessFromCommandLine('muse exec --json "review this" > result.jsonl')
+    ).toBeNull()
+    // Why: `muse resume` reopens the interactive TUI, so it still hosts a live session.
+    expect(recognizeAgentProcessFromCommandLine('muse resume')).toEqual({
+      agent: 'musecode',
+      processName: 'muse'
+    })
+    // Why: past `--` nothing is a subcommand, so this is the interactive pane Orca itself launches.
+    expect(recognizeAgentProcessFromCommandLine('muse -- "exec the release notes"')).toEqual({
+      agent: 'musecode',
+      processName: 'muse'
+    })
+  })
+
   it('recognizes Mistral Vibe by its installed executable and legacy alias', () => {
     expect(recognizeAgentProcess('/home/dev/.local/bin/vibe')).toEqual({
       agent: 'mistral-vibe',

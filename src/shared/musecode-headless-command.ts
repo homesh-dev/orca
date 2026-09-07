@@ -1,14 +1,10 @@
 // Why: `muse exec …` runs one prompt headless and exits, while bare `muse`
 // (and `muse resume`) hosts the interactive TUI Orca panes run.
+// A bare `exec` token dispatches as the subcommand even past `--` (verified:
+// `muse -- resume` still resumes), so there is no terminator to stop at —
+// match it anywhere. A quoted multi-word prompt stays one token and never
+// equals `exec`; a whole-prompt `muse 'exec'` takes the exec missing-prompt
+// error path, not a TUI, so filtering it is still correct.
 export function isMusecodeHeadlessOneShotCommand(tokens: readonly string[]): boolean {
-  for (let index = 1; index < tokens.length; index += 1) {
-    // Why: `--` ends option parsing, so a prompt that reads like `exec` is still a prompt.
-    if (tokens[index] === '--') {
-      return false
-    }
-    if (tokens[index] === 'exec') {
-      return true
-    }
-  }
-  return false
+  return tokens.slice(1).some((token) => token === 'exec')
 }

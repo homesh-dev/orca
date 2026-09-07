@@ -3,7 +3,9 @@ import { dirname } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
 
 // Why (parked): this service is complete and tested but NOT registered in
-// managed-agent-hook-registry.ts / remote-managed-hook-installers.ts yet.
+// managed-agent-hook-registry.ts / remote-managed-hook-installers.ts, and
+// 'musecode' is deliberately absent from AGENT_HOOK_TARGETS (which would
+// otherwise probe for it with no installer to act).
 // MuseCode runs hooks with a cleared environment (verified against muse 1.0.3:
 // only HOME/PATH/LANG/USER/etc survive, no ORCA_* passthrough), so the
 // managed script cannot learn ORCA_PANE_KEY and its events cannot be

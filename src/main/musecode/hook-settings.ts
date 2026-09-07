@@ -4,6 +4,7 @@ import {
   buildManagedCommandHook,
   createManagedCommandMatcher,
   getSharedManagedScriptPath,
+  isPlainObject,
   wrapPosixHookCommand,
   type HookDefinition,
   type HooksConfig
@@ -91,9 +92,12 @@ export function readManagedMusecodeHookEvents(
     if (!Array.isArray(definitions)) {
       continue
     }
+    // Why: a hand-edited managed file can hold null definitions, non-array
+    // hook lists, or null entries — treat all of them as absent so status
+    // calculation never throws on user content.
     if (
       definitions.some((definition) =>
-        (definition.hooks ?? []).some((hook) => isManagedCommand(hook.command))
+        managedHookEntries(definition).some((hook) => isManagedCommand(hookEntryCommand(hook)))
       )
     ) {
       present.add(event)
@@ -104,4 +108,20 @@ export function readManagedMusecodeHookEvents(
 
 export function getMusecodeManagedCommandMatcher(): (command: string | undefined) => boolean {
   return createManagedCommandMatcher(getMusecodeManagedScriptFileName())
+}
+
+function managedHookEntries(definition: unknown): readonly unknown[] {
+  if (!isPlainObject(definition)) {
+    return []
+  }
+  const hooks = (definition as { hooks?: unknown }).hooks
+  return Array.isArray(hooks) ? hooks : []
+}
+
+function hookEntryCommand(hook: unknown): string | undefined {
+  if (!isPlainObject(hook)) {
+    return undefined
+  }
+  const command = (hook as { command?: unknown }).command
+  return typeof command === 'string' ? command : undefined
 }

@@ -184,12 +184,26 @@ describe('agent process recognition', () => {
     expect(
       recognizeAgentProcessFromCommandLine('muse exec --json "review this" > result.jsonl')
     ).toBeNull()
+    // Why: a bare `exec` token dispatches as the subcommand even past `--`
+    // (verified: `muse -- resume` still resumes), so this errors instead of
+    // hosting a pane — never an interactive agent.
+    expect(recognizeAgentProcessFromCommandLine('muse -- exec "summarize this diff"')).toBeNull()
+    // Why: a whole-prompt `muse 'exec'` takes the exec missing-prompt error
+    // path, not a TUI, so filtering it is correct.
+    expect(recognizeAgentProcessFromCommandLine("muse 'exec'")).toBeNull()
     // Why: `muse resume` reopens the interactive TUI, so it still hosts a live session.
     expect(recognizeAgentProcessFromCommandLine('muse resume')).toEqual({
       agent: 'musecode',
       processName: 'muse'
     })
-    // Why: past `--` nothing is a subcommand, so this is the interactive pane Orca itself launches.
+    // Why: `muse -- resume` still dispatches to the resume subcommand (verified
+    // against muse 1.0.3), which reopens the interactive TUI.
+    expect(recognizeAgentProcessFromCommandLine('muse -- resume')).toEqual({
+      agent: 'musecode',
+      processName: 'muse'
+    })
+    // Why: the prompt is one quoted argv, so it never equals the bare `exec`
+    // token — this is the interactive pane Orca itself launches.
     expect(recognizeAgentProcessFromCommandLine('muse -- "exec the release notes"')).toEqual({
       agent: 'musecode',
       processName: 'muse'

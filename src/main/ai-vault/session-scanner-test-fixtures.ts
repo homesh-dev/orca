@@ -161,6 +161,13 @@ export async function writeMusecodeScannerFixture(sessionsDir: string): Promise<
       { intent_id: 'intent-1', refill_blocks: [{ kind: 'text', text: 'Musecode vault title' }] },
       1780000001000000
     ),
+    // Why: every turn also emits `run :: started` carrying the same prompt —
+    // the parser must fold it once (messageCount stays 2 below).
+    bare(
+      'runtime.session',
+      { kind: 'run', run_id: 'run-1', event: { kind: 'started', prompt: 'Musecode vault title' } },
+      1780000001000007
+    ),
     {
       retained_frame: true,
       frame_schema_version: 1,

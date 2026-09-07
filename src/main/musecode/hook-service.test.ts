@@ -103,4 +103,26 @@ describe('MusecodeHookService', () => {
     expect(status.state).toBe('not_installed')
     expect(status.detail).toContain('/central/hooks.json')
   })
+
+  it('treats malformed managed hook entries as absent instead of throwing', () => {
+    mkdirSync(join(home, '.config', 'muse'), { recursive: true })
+    mkdirSync(join(home, '.orca', 'agent-hooks'), { recursive: true })
+    const managedPath = join(home, '.orca', 'agent-hooks', 'musecode-hooks.json')
+    writeFileSync(configPath(), JSON.stringify({ schema_version: 1 }))
+    const service = new MusecodeHookService()
+    expect(service.install().state).toBe('installed')
+    // Hand-edited damage: null definition, non-array hooks, null entry,
+    // non-string command — status must degrade, never throw.
+    const damaged = JSON.parse(readFileSync(managedPath, 'utf-8')) as {
+      hooks: Record<string, unknown>
+    }
+    damaged.hooks.UserPromptSubmit = [
+      null,
+      { hooks: 'not-an-array' },
+      { hooks: [null, { command: 42 }] }
+    ]
+    writeFileSync(managedPath, JSON.stringify(damaged))
+    expect(() => service.getStatus()).not.toThrow()
+    expect(service.getStatus().state).toBe('partial')
+  })
 })

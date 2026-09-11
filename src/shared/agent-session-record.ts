@@ -1,3 +1,5 @@
+import { isAgentSessionRewindRecord, type AgentSessionRewindRecord } from './agent-session-rewind'
+import { isAgentSessionConversationName } from './agent-session-conversation-name'
 /**
  * Durable agent-session record and its single-writer lease.
  *
@@ -7,6 +9,10 @@
  */
 
 import type { ExecutionHostId } from './execution-host'
+import {
+  isAgentSessionConversationCommandRecord,
+  type AgentSessionConversationCommandRecord
+} from './agent-session-conversation-command'
 import {
   isAgentSessionProviderHandleChain,
   type AgentSessionHandleProvider,
@@ -125,6 +131,10 @@ export type AgentSessionRecord = {
   accountHome: AgentSessionAccountHome
   /** Provider options acknowledged for the next turn, restored across owner replacement. */
   options?: Record<string, string>
+  rewind?: AgentSessionRewindRecord
+  conversationCommand?: AgentSessionConversationCommandRecord
+  /** The name Orca gave this conversation, so a later acquisition need not name it again. */
+  conversationName?: string
   launchArgs?: AgentSessionLaunchArgs
   lease: AgentSessionLease
   createdAt: number
@@ -335,6 +345,11 @@ export function isAgentSessionRecord(value: unknown): value is AgentSessionRecor
     isAgentSessionProviderHandleChain(record.providerHandleChain) &&
     isAgentSessionAccountHome(record.accountHome) &&
     (record.options === undefined || isAgentSessionOptions(record.options)) &&
+    (record.rewind === undefined || isAgentSessionRewindRecord(record.rewind)) &&
+    (record.conversationCommand === undefined ||
+      isAgentSessionConversationCommandRecord(record.conversationCommand)) &&
+    (record.conversationName === undefined ||
+      isAgentSessionConversationName(record.conversationName)) &&
     (record.launchArgs === undefined || isAgentSessionLaunchArgs(record.launchArgs)) &&
     !Object.hasOwn(record, 'launchEnv') &&
     isAgentSessionLease(record.lease) &&

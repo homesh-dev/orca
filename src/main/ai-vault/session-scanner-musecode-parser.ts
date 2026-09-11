@@ -9,6 +9,7 @@ import {
   updateTimeline
 } from './session-scanner-accumulator'
 import { musecodeSessionIdFromFilePath } from './session-scanner-musecode-paths'
+import type { TranscriptMessageSink } from './session-transcript-consumers'
 import {
   arrayValue,
   asRecord,
@@ -216,12 +217,15 @@ function foldMusecodeContent(accumulator: SessionAccumulator, content: string): 
 
 export async function parseMusecodeSessionFile(
   file: FileWithMtime,
-  platform: NodeJS.Platform = process.platform
+  platform: NodeJS.Platform = process.platform,
+  messages?: TranscriptMessageSink
 ): Promise<AiVaultSession | null> {
-  return parseMusecodeSessionContent(
+  return parseMusecodeSessionRecord(
     file,
     await wslGatedReadFile(file.path, 'utf-8', 'scan'),
-    platform
+    platform,
+    {},
+    messages
   )
 }
 
@@ -231,10 +235,21 @@ export function parseMusecodeSessionContent(
   platform: NodeJS.Platform = process.platform,
   options: ParserSessionOptions = {}
 ): AiVaultSession | null {
+  return parseMusecodeSessionRecord(file, content, platform, options)
+}
+
+function parseMusecodeSessionRecord(
+  file: FileWithMtime,
+  content: string,
+  platform: NodeJS.Platform,
+  options: ParserSessionOptions,
+  messages?: TranscriptMessageSink
+): AiVaultSession | null {
   const accumulator = createAccumulator({
     agent: 'musecode',
     file,
-    sessionId: musecodeSessionIdFromFilePath(file.path)
+    sessionId: musecodeSessionIdFromFilePath(file.path),
+    messages
   })
   foldMusecodeContent(accumulator, content)
   return finalizeSession(accumulator, platform, options)

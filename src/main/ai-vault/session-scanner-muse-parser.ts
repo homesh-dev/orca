@@ -212,7 +212,7 @@ async function foldMuseContent(
   content: RemoteSessionContent,
   signal?: AbortSignal
 ): Promise<void> {
-  const dedupe = { text: null as string | null, ms: null as number | null }
+  const dedupe: { text: string | null; ms: number | null } = { text: null, ms: null }
   for await (const line of remoteSessionContentLines(content, signal)) {
     if (!line.trim()) {
       continue

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { MUSE_MANAGED_HOOK_ENV_VARS } from './hook-config-json'
+import { MUSE_MANAGED_HOOK_ENV_VARS, parseMuseSettingsText } from './hook-config-json'
 import { MuseHookService } from './hook-service'
 import { MUSE_HOOK_EVENTS } from './hook-settings'
 
@@ -52,14 +52,14 @@ describe('MuseHookService', () => {
 
     // The settings pointer aims at the Orca-owned managed file, and a fresh
     // settings.json carries the schema_version muse requires.
-    const settings = JSON.parse(readFileSync(configPath(), 'utf-8')) as Record<string, unknown>
-    expect(settings.managed_hooks_path).toBe(managedHooksPath())
-    expect(settings.managed_hooks_env_vars).toEqual(MUSE_MANAGED_HOOK_ENV_VARS)
-    expect(settings.schema_version).toBe(1)
+    const settings = parseMuseSettingsText(readFileSync(configPath(), 'utf-8'), 'test')
+    expect(settings?.managed_hooks_path).toBe(managedHooksPath())
+    expect(settings?.managed_hooks_env_vars).toEqual(MUSE_MANAGED_HOOK_ENV_VARS)
+    expect(settings?.schema_version).toBe(1)
 
-    const managed = JSON.parse(readFileSync(managedHooksPath(), 'utf-8')) as {
+    const managed: {
       hooks: Record<string, { hooks: { command: string }[] }[]>
-    }
+    } = JSON.parse(readFileSync(managedHooksPath(), 'utf-8'))
     for (const event of MUSE_HOOK_EVENTS) {
       expect(managed.hooks[event]?.[0]?.hooks[0]?.command).toContain('agent-hooks/muse-hook.sh')
     }
@@ -92,11 +92,11 @@ describe('MuseHookService', () => {
 
     const removed = service.remove()
     expect(removed.state).toBe('not_installed')
-    const afterRemove = JSON.parse(readFileSync(configPath(), 'utf-8')) as Record<string, unknown>
-    expect(afterRemove.managed_hooks_path).toBeUndefined()
-    expect(afterRemove.managed_hooks_env_vars).toContain('USER_MANAGED_VAR')
-    expect(afterRemove.managed_hooks_env_vars).toContain('ORCA_PANE_KEY')
-    expect(afterRemove.model).toBe('muse-spark-1.2')
+    const afterRemove = parseMuseSettingsText(readFileSync(configPath(), 'utf-8'), 'test')
+    expect(afterRemove?.managed_hooks_path).toBeUndefined()
+    expect(afterRemove?.managed_hooks_env_vars).toContain('USER_MANAGED_VAR')
+    expect(afterRemove?.managed_hooks_env_vars).toContain('ORCA_PANE_KEY')
+    expect(afterRemove?.model).toBe('muse-spark-1.2')
   })
 
   it('reports not_installed when the pointer aims elsewhere', () => {
@@ -119,9 +119,9 @@ describe('MuseHookService', () => {
     expect(service.install().state).toBe('installed')
     // Hand-edited damage: null definition, non-array hooks, null entry,
     // non-string command — status must degrade, never throw.
-    const damaged = JSON.parse(readFileSync(managedPath, 'utf-8')) as {
+    const damaged: {
       hooks: Record<string, unknown>
-    }
+    } = JSON.parse(readFileSync(managedPath, 'utf-8'))
     damaged.hooks.UserPromptSubmit = [
       null,
       { hooks: 'not-an-array' },

@@ -39,7 +39,7 @@ export function parseMuseSettingsText(
   if (parsed === undefined) {
     return {}
   }
-  return isPlainObject(parsed) ? (parsed as Record<string, unknown>) : null
+  return isPlainObject(parsed) ? parsed : null
 }
 
 export function readMuseSettingsSource(configPath: string): MuseSettingsSource | null {
@@ -71,14 +71,14 @@ export function serializeMuseSettings(
     return `${JSON.stringify(config, null, 2)}\n`
   }
   let text = originalText
-  const parsed = parseJsonc(originalText) as Record<string, unknown> | undefined
+  const parsed = parseMuseSettingsText(originalText, 'Muse settings.json')
   if (parsed?.schema_version === undefined) {
     text = applyEdits(
       text,
       modify(text, ['schema_version'], 1, { formattingOptions: { insertSpaces: true, tabSize: 2 } })
     )
   }
-  const current = parseJsonc(text) as Record<string, unknown> | undefined
+  const current = parseMuseSettingsText(text, 'Muse settings.json')
   if (current?.managed_hooks_path !== managedHooksPath) {
     text = applyEdits(
       text,
@@ -89,7 +89,7 @@ export function serializeMuseSettings(
     )
   }
   if (managedHooksPath !== undefined) {
-    const withPointer = parseJsonc(text) as Record<string, unknown> | undefined
+    const withPointer = parseMuseSettingsText(text, 'Muse settings.json')
     const currentEnvVars = Array.isArray(withPointer?.managed_hooks_env_vars)
       ? withPointer.managed_hooks_env_vars.filter(
           (value): value is string => typeof value === 'string'

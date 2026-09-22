@@ -29,10 +29,10 @@ describe('muse hook-config-json', () => {
     const original =
       '{\n  "schema_version": 1,\n  "managed_hooks_path": "/x/muse-hooks.json",\n  "model": "muse-spark-1.2"\n}\n'
     const next = serializeMuseSettings(original, undefined)
-    const parsed = JSON.parse(next) as Record<string, unknown>
-    expect(parsed.managed_hooks_path).toBeUndefined()
-    expect(parsed.model).toBe('muse-spark-1.2')
-    expect(parsed.schema_version).toBe(1)
+    const parsed = parseMuseSettingsText(next, 'test')
+    expect(parsed?.managed_hooks_path).toBeUndefined()
+    expect(parsed?.model).toBe('muse-spark-1.2')
+    expect(parsed?.schema_version).toBe(1)
   })
 
   it('leaves already-converged text untouched', () => {

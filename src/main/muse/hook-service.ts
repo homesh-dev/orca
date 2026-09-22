@@ -3,7 +3,7 @@ import { dirname } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
 
 import type { AgentHookInstallState, AgentHookInstallStatus } from '../../shared/agent-hook-types'
-import { writeManagedScript, type HooksConfig } from '../agent-hooks/installer-utils'
+import { writeManagedScript } from '../agent-hooks/installer-utils'
 import { refreshManagedScriptIfPresent } from '../agent-hooks/managed-hook-script-refresh'
 import {
   readTextFileRemote,
@@ -106,9 +106,9 @@ function buildStatus(
           : `managed_hooks_path points at ${pointer}, not the Orca managed hooks file`
     }
   }
-  let parsed: HooksConfig | null = null
+  let parsed: unknown = null
   try {
-    parsed = JSON.parse(managedText) as HooksConfig
+    parsed = JSON.parse(managedText)
   } catch {
     parsed = null
   }

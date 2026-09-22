@@ -6,8 +6,7 @@ import {
   getSharedManagedScriptPath,
   isPlainObject,
   wrapPosixHookCommand,
-  type HookDefinition,
-  type HooksConfig
+  type HookDefinition
 } from '../agent-hooks/installer-utils'
 
 const MUSE_SCRIPT_BASE = 'muse-hook'
@@ -80,11 +79,11 @@ export function buildMuseManagedHooksFile(command: string): string {
 }
 
 export function readManagedMuseHookEvents(
-  parsed: HooksConfig | null,
+  parsed: unknown,
   isManagedCommand: (command: string | undefined) => boolean
 ): Set<string> {
   const present = new Set<string>()
-  if (!parsed || typeof parsed.hooks !== 'object' || parsed.hooks === null) {
+  if (!isPlainObject(parsed) || !isPlainObject(parsed.hooks)) {
     return present
   }
   for (const event of MUSE_HOOK_EVENTS) {
@@ -114,7 +113,7 @@ function managedHookEntries(definition: unknown): readonly unknown[] {
   if (!isPlainObject(definition)) {
     return []
   }
-  const hooks = (definition as { hooks?: unknown }).hooks
+  const hooks = definition.hooks
   return Array.isArray(hooks) ? hooks : []
 }
 
@@ -122,6 +121,6 @@ function hookEntryCommand(hook: unknown): string | undefined {
   if (!isPlainObject(hook)) {
     return undefined
   }
-  const command = (hook as { command?: unknown }).command
+  const command = hook.command
   return typeof command === 'string' ? command : undefined
 }

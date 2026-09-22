@@ -2,17 +2,6 @@ import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from '
 import { dirname } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
 
-// Why (parked): this service is complete and tested but NOT registered in
-// managed-agent-hook-registry.ts / remote-managed-hook-installers.ts.
-// 'musecode' stays present in AGENT_HOOK_TARGETS (presence probing only —
-// no installer acts on the result) because AgentHookInstallStatus is typed
-// over that list and forking status types would be worse.
-// MuseCode runs hooks with a cleared environment (verified against muse 1.0.3:
-// only HOME/PATH/LANG/USER/etc survive, no ORCA_* passthrough), so the
-// managed script cannot learn ORCA_PANE_KEY and its events cannot be
-// attributed to a pane — auto-installing now would add per-event curl/spool
-// overhead for zero status benefit. Register once pane attribution is solved
-// (upstream env allowlist, or PID-ancestry attribution in the hook server).
 import type { AgentHookInstallState, AgentHookInstallStatus } from '../../shared/agent-hook-types'
 import { writeManagedScript, type HooksConfig } from '../agent-hooks/installer-utils'
 import { refreshManagedScriptIfPresent } from '../agent-hooks/managed-hook-script-refresh'
@@ -27,34 +16,35 @@ import {
 } from '../agent-hooks/hook-stdin-contract'
 import { buildPosixAgentHookPostCommand } from '../agent-hooks/hook-post-command'
 import {
-  buildMusecodeManagedHooksFile,
-  getMusecodeConfigPath,
-  getMusecodeManagedCommand,
-  getMusecodeManagedCommandMatcher,
-  getMusecodeManagedHooksPath,
-  getMusecodeManagedScriptPath,
-  getMusecodeRemoteConfigPath,
-  getMusecodeRemoteManagedCommand,
-  getMusecodeRemoteManagedHooksPath,
-  MUSECODE_HOOK_EVENTS,
-  readManagedMusecodeHookEvents
+  buildMuseManagedHooksFile,
+  getMuseConfigPath,
+  getMuseManagedCommand,
+  getMuseManagedCommandMatcher,
+  getMuseManagedHooksPath,
+  getMuseManagedScriptPath,
+  getMuseRemoteConfigPath,
+  getMuseRemoteManagedCommand,
+  getMuseRemoteManagedHooksPath,
+  MUSE_HOOK_EVENTS,
+  readManagedMuseHookEvents
 } from './hook-settings'
 import {
-  parseMusecodeSettingsText,
-  readMusecodeSettingsSource,
-  serializeMusecodeSettings
+  MUSE_MANAGED_HOOK_ENV_VARS,
+  parseMuseSettingsText,
+  readMuseSettingsSource,
+  serializeMuseSettings
 } from './hook-config-json'
 
 // Always a POSIX `.sh` script: muse runs hook commands through sh (verified
 // against muse 1.0.3), and the CLI has no native Windows build (WSL2 only),
 // so a single curl-based script body works on every platform.
-const MANAGED_SCRIPT_FILE_NAME = 'musecode-hook.sh'
+const MANAGED_SCRIPT_FILE_NAME = 'muse-hook.sh'
 
 function getManagedScript(): string {
   return [
     '#!/bin/sh',
     ...buildPosixHookPayloadCapture(),
-    ...buildPosixHookSpoolLines('musecode'),
+    ...buildPosixHookSpoolLines('muse'),
     // Why: endpoint file holds the live port/token; PTYs that outlive an Orca restart carry stale env, so source it to reach the new server (else PTY env).
     // Why: silence the `.` builtin (2>/dev/null + `|| :`) so a TOCTOU race can't leak shell parse errors into agent transcripts (fail-open).
     'if [ -n "$ORCA_AGENT_HOOK_ENDPOINT" ] && [ -r "$ORCA_AGENT_HOOK_ENDPOINT" ]; then',
@@ -65,7 +55,7 @@ function getManagedScript(): string {
     '  exit 0',
     'fi',
     // Why: redirect on `fi` covers the whole if-statement (both transport branches); `|| spool` keeps the fail-open spool fallback.
-    ...buildPosixAgentHookPostCommand('musecode').map((line, index, lines) =>
+    ...buildPosixAgentHookPostCommand('muse').map((line, index, lines) =>
       index === lines.length - 1 ? `${line} >/dev/null 2>&1 || spool_hook_event` : line
     ),
     'exit 0',
@@ -90,12 +80,13 @@ function writeTextFileAtomic(filePath: string, text: string): void {
 }
 
 function buildStatus(
+  config: Record<string, unknown>,
   pointer: string | undefined,
   managedHooksPath: string,
   managedText: string | null,
   configPath: string
 ): AgentHookInstallStatus {
-  const base = { agent: 'musecode' as const, configPath }
+  const base = { agent: 'muse' as const, configPath }
   if (managedText === null) {
     return {
       ...base,
@@ -121,11 +112,17 @@ function buildStatus(
   } catch {
     parsed = null
   }
-  const present = readManagedMusecodeHookEvents(parsed, getMusecodeManagedCommandMatcher())
-  const missing = MUSECODE_HOOK_EVENTS.filter((event) => !present.has(event))
+  const present = readManagedMuseHookEvents(parsed, getMuseManagedCommandMatcher())
+  const missingEvents = MUSE_HOOK_EVENTS.filter((event) => !present.has(event))
+  const allowedEnvVars = new Set(
+    Array.isArray(config.managed_hooks_env_vars)
+      ? config.managed_hooks_env_vars.filter((value): value is string => typeof value === 'string')
+      : []
+  )
+  const missingEnvVars = MUSE_MANAGED_HOOK_ENV_VARS.filter((name) => !allowedEnvVars.has(name))
   let state: AgentHookInstallState
   let detail: string | null
-  if (missing.length === 0) {
+  if (missingEvents.length === 0 && missingEnvVars.length === 0) {
     state = 'installed'
     detail = null
   } else if (present.size === 0) {
@@ -133,32 +130,38 @@ function buildStatus(
     detail = null
   } else {
     state = 'partial'
-    detail = `Managed hook missing for events: ${missing.join(', ')}`
+    detail = [
+      missingEvents.length > 0 ? `events: ${missingEvents.join(', ')}` : null,
+      missingEnvVars.length > 0 ? `environment variables: ${missingEnvVars.join(', ')}` : null
+    ]
+      .filter(Boolean)
+      .join('; ')
+    detail = `Managed hook missing ${detail}`
   }
   return { ...base, state, managedHooksPresent: present.size > 0, detail }
 }
 
-export class MusecodeHookService {
+export class MuseHookService {
   async refreshManagedScripts(): Promise<void> {
-    await refreshManagedScriptIfPresent(getMusecodeManagedScriptPath(), getManagedScript())
-    const managedHooksPath = getMusecodeManagedHooksPath()
+    await refreshManagedScriptIfPresent(getMuseManagedScriptPath(), getManagedScript())
+    const managedHooksPath = getMuseManagedHooksPath()
     if (existsSync(managedHooksPath)) {
-      const command = getMusecodeManagedCommand(getMusecodeManagedScriptPath())
-      writeTextFileAtomic(managedHooksPath, buildMusecodeManagedHooksFile(command))
+      const command = getMuseManagedCommand(getMuseManagedScriptPath())
+      writeTextFileAtomic(managedHooksPath, buildMuseManagedHooksFile(command))
     }
   }
 
   getStatus(): AgentHookInstallStatus {
-    const configPath = getMusecodeConfigPath()
-    const managedHooksPath = getMusecodeManagedHooksPath()
-    const source = readMusecodeSettingsSource(configPath)
+    const configPath = getMuseConfigPath()
+    const managedHooksPath = getMuseManagedHooksPath()
+    const source = readMuseSettingsSource(configPath)
     if (!source) {
       return {
-        agent: 'musecode',
+        agent: 'muse',
         state: 'error',
         configPath,
         managedHooksPresent: false,
-        detail: 'Could not read MuseCode settings.json'
+        detail: 'Could not read Muse settings.json'
       }
     }
     const pointer =
@@ -166,6 +169,7 @@ export class MusecodeHookService {
         ? source.config.managed_hooks_path
         : undefined
     return buildStatus(
+      source.config,
       pointer,
       managedHooksPath,
       readManagedHooksFile(managedHooksPath),
@@ -174,64 +178,63 @@ export class MusecodeHookService {
   }
 
   install(): AgentHookInstallStatus {
-    const configPath = getMusecodeConfigPath()
-    const managedHooksPath = getMusecodeManagedHooksPath()
-    const source = readMusecodeSettingsSource(configPath)
+    const configPath = getMuseConfigPath()
+    const managedHooksPath = getMuseManagedHooksPath()
+    const source = readMuseSettingsSource(configPath)
     if (!source) {
       return {
-        agent: 'musecode',
+        agent: 'muse',
         state: 'error',
         configPath,
         managedHooksPresent: false,
-        detail: 'Could not read MuseCode settings.json'
+        detail: 'Could not read Muse settings.json'
       }
     }
-    const scriptPath = getMusecodeManagedScriptPath()
-    const command = getMusecodeManagedCommand(scriptPath)
+    const scriptPath = getMuseManagedScriptPath()
+    const command = getMuseManagedCommand(scriptPath)
     // Write the script and managed hooks file first so settings.json never points at missing files.
     writeManagedScript(scriptPath, getManagedScript())
-    writeTextFileAtomic(managedHooksPath, buildMusecodeManagedHooksFile(command))
-    const nextText = serializeMusecodeSettings(source.text, managedHooksPath)
+    writeTextFileAtomic(managedHooksPath, buildMuseManagedHooksFile(command))
+    const nextText = serializeMuseSettings(source.text, managedHooksPath)
     if (source.text !== nextText) {
       writeTextFileAtomic(configPath, nextText)
     }
     return this.getStatus()
   }
 
-  // Why: install the MuseCode hook on a remote box over SFTP, mirroring the
+  // Why: install the Muse hook on a remote box over SFTP, mirroring the
   // local install. POSIX-only by design (muse has no native Windows build).
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
-    const remoteConfigPath = getMusecodeRemoteConfigPath(remoteHome)
+    const remoteConfigPath = getMuseRemoteConfigPath(remoteHome)
     const remoteScriptPath = `${remoteHome.replace(/\/$/, '')}/.orca/agent-hooks/${MANAGED_SCRIPT_FILE_NAME}`
-    const remoteManagedHooksPath = getMusecodeRemoteManagedHooksPath(remoteHome)
+    const remoteManagedHooksPath = getMuseRemoteManagedHooksPath(remoteHome)
     try {
       const body = await readTextFileRemote(sftp, remoteConfigPath)
-      const config =
-        body === null ? {} : parseMusecodeSettingsText(body, 'remote MuseCode settings.json')
+      const config = body === null ? {} : parseMuseSettingsText(body, 'remote Muse settings.json')
       if (!config) {
         return {
-          agent: 'musecode',
+          agent: 'muse',
           state: 'error',
           configPath: remoteConfigPath,
           managedHooksPresent: false,
-          detail: 'Could not parse remote MuseCode settings.json'
+          detail: 'Could not parse remote Muse settings.json'
         }
       }
-      const command = getMusecodeRemoteManagedCommand(remoteScriptPath)
+      const command = getMuseRemoteManagedCommand(remoteScriptPath)
       // Write the script and managed hooks file first so settings.json never points at missing files.
       await writeManagedScriptRemote(sftp, remoteScriptPath, getManagedScript())
       await writeTextFileRemoteAtomic(
         sftp,
         remoteManagedHooksPath,
-        buildMusecodeManagedHooksFile(command)
+        buildMuseManagedHooksFile(command)
       )
       await writeTextFileRemoteAtomic(
         sftp,
         remoteConfigPath,
-        serializeMusecodeSettings(body, remoteManagedHooksPath)
+        serializeMuseSettings(body, remoteManagedHooksPath)
       )
       return {
-        agent: 'musecode',
+        agent: 'muse',
         state: 'installed',
         configPath: remoteConfigPath,
         managedHooksPresent: true,
@@ -239,7 +242,7 @@ export class MusecodeHookService {
       }
     } catch (err) {
       return {
-        agent: 'musecode',
+        agent: 'muse',
         state: 'error',
         configPath: remoteConfigPath,
         managedHooksPresent: false,
@@ -249,20 +252,20 @@ export class MusecodeHookService {
   }
 
   remove(): AgentHookInstallStatus {
-    const configPath = getMusecodeConfigPath()
-    const managedHooksPath = getMusecodeManagedHooksPath()
-    const source = readMusecodeSettingsSource(configPath)
+    const configPath = getMuseConfigPath()
+    const managedHooksPath = getMuseManagedHooksPath()
+    const source = readMuseSettingsSource(configPath)
     if (!source) {
       return {
-        agent: 'musecode',
+        agent: 'muse',
         state: 'error',
         configPath,
         managedHooksPresent: false,
-        detail: 'Could not read MuseCode settings.json'
+        detail: 'Could not read Muse settings.json'
       }
     }
     if (source.config.managed_hooks_path === managedHooksPath) {
-      const nextText = serializeMusecodeSettings(source.text, undefined)
+      const nextText = serializeMuseSettings(source.text, undefined)
       if (source.text !== nextText) {
         writeTextFileAtomic(configPath, nextText)
       }
@@ -278,4 +281,4 @@ export class MusecodeHookService {
   }
 }
 
-export const musecodeHookService = new MusecodeHookService()
+export const museHookService = new MuseHookService()

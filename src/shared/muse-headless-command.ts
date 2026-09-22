@@ -5,6 +5,6 @@
 // match it anywhere. A quoted multi-word prompt stays one token and never
 // equals `exec`; a whole-prompt `muse 'exec'` takes the exec missing-prompt
 // error path, not a TUI, so filtering it is still correct.
-export function isMusecodeHeadlessOneShotCommand(tokens: readonly string[]): boolean {
+export function isMuseHeadlessOneShotCommand(tokens: readonly string[]): boolean {
   return tokens.slice(1).some((token) => token === 'exec')
 }

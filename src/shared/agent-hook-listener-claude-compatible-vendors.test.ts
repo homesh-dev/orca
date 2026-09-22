@@ -287,13 +287,13 @@ describe('shared agent-hook-listener', () => {
     })
   })
 
-  // Why: MuseCode emits Claude-compatible hook payloads (captured from muse
-  // 1.0.3 hook stdin); normalize but attribute to MuseCode, including the
+  // Why: Muse emits Claude-compatible hook payloads (captured from muse
+  // 1.0.3 hook stdin); normalize but attribute to Muse, including the
   // Stop `last_assistant_message` the CLI sends inline.
-  it('normalizes MuseCode Claude-compatible lifecycle events as musecode status', () => {
+  it('normalizes Muse Claude-compatible lifecycle events as muse status', () => {
     const submitted = normalizeHookPayload(
       state,
-      'musecode',
+      'muse',
       {
         paneKey: PANE_KEY,
         payload: {
@@ -311,7 +311,7 @@ describe('shared agent-hook-listener', () => {
     )
     const waiting = normalizeHookPayload(
       state,
-      'musecode',
+      'muse',
       {
         paneKey: PANE_KEY,
         payload: {
@@ -323,7 +323,7 @@ describe('shared agent-hook-listener', () => {
     )
     const stopped = normalizeHookPayload(
       state,
-      'musecode',
+      'muse',
       {
         paneKey: PANE_KEY,
         payload: {
@@ -338,13 +338,13 @@ describe('shared agent-hook-listener', () => {
     )
 
     expect(submitted?.payload).toMatchObject({
-      agentType: 'musecode',
+      agentType: 'muse',
       state: 'working',
       prompt: 'say hi again'
     })
-    expect(waiting?.payload).toMatchObject({ agentType: 'musecode', state: 'waiting' })
+    expect(waiting?.payload).toMatchObject({ agentType: 'muse', state: 'waiting' })
     expect(stopped?.payload).toMatchObject({
-      agentType: 'musecode',
+      agentType: 'muse',
       state: 'done',
       lastAssistantMessage: 'echo: say hi again'
     })

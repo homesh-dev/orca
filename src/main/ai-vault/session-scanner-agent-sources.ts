@@ -12,7 +12,7 @@ import {
 import { cursorChatMetaPath } from './session-scanner-cursor-chat-meta'
 import { devinSessionsDbDependencyPath } from './session-scanner-devin-db'
 import { resolveKimiSessionsDir } from './session-scanner-kimi-paths'
-import { resolveMusecodeSessionsDir } from './session-scanner-musecode-paths'
+import { resolveMuseSessionsDir } from './session-scanner-muse-paths'
 import { OMP_SESSION_ARTIFACT_DIR_PATTERN } from './session-scanner-omp-subagent-transcripts'
 import {
   claudeProjectsRootDirs,
@@ -287,16 +287,16 @@ export const AI_VAULT_AGENT_SOURCES: AiVaultAgentSourceTable = {
     filePredicate: (filePath) =>
       basename(filePath) === 'state.json' && basename(dirname(filePath)).startsWith('session_')
   },
-  musecode: {
+  muse: {
     rootDirs: (options, wslHomeDirs) =>
-      sessionRootDirs(resolveMusecodeSessionsDir(options.musecodeSessionsDir), wslHomeDirs, [
+      sessionRootDirs(resolveMuseSessionsDir(options.museSessionsDir), wslHomeDirs, [
         '.local',
         'share',
         'muse',
         'sessions'
       ]),
     extensions: ['.jsonl'],
-    // Why: each MuseCode session is <root>/YYYY/MM/DD/<uuid>/session.jsonl;
+    // Why: each Muse session is <root>/YYYY/MM/DD/<uuid>/session.jsonl;
     // match only those (not sibling .log/.sqlite3 sidecars or the .msp-view
     // materialized projection).
     filePredicate: (filePath) => basename(filePath) === 'session.jsonl'

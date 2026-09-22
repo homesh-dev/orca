@@ -11,10 +11,10 @@ import {
 import { extractToolFields, isNewTurnEvent } from '../provider-event-routing'
 import { readString } from '../tool-input-preview'
 
-// Why: MuseCode emits Claude-compatible payloads/event names (verified against
-// muse 1.0.3 hook stdin); normalize but attribute to MuseCode so the sidebar
+// Why: Muse emits Claude-compatible payloads/event names (verified against
+// muse 1.0.3 hook stdin); normalize but attribute to Muse so the sidebar
 // shows its icon/label, not Claude's.
-export function normalizeMusecodeEvent(
+export function normalizeMuseEvent(
   state: HookListenerState,
   eventName: unknown,
   promptText: string,
@@ -27,7 +27,7 @@ export function normalizeMusecodeEvent(
 
   const toolName = readString(hookPayload, 'tool_name')
   // Why: same AskUserQuestion-shaped waiting rule as Kimi; the name check is
-  // generic, so it holds even though MuseCode's question-tool shape is unverified.
+  // generic, so it holds even though Muse's question-tool shape is unverified.
   const isUserInputTool =
     toolName?.replaceAll(/[^a-z0-9]/gi, '').toLowerCase() === 'askuserquestion'
 
@@ -52,8 +52,8 @@ export function normalizeMusecodeEvent(
   const snapshot = resolveToolState(
     state,
     paneKey,
-    extractToolFields('musecode', eventName, hookPayload),
-    { resetOnNewTurn: isNewTurnEvent('musecode', eventName) }
+    extractToolFields('muse', eventName, hookPayload),
+    { resetOnNewTurn: isNewTurnEvent('muse', eventName) }
   )
 
   const interrupted =
@@ -62,9 +62,9 @@ export function normalizeMusecodeEvent(
   return normalizeAgentStatusPayload({
     state: stateName,
     prompt: resolvePrompt(state, paneKey, promptText, {
-      resetOnNewTurn: isNewTurnEvent('musecode', eventName)
+      resetOnNewTurn: isNewTurnEvent('muse', eventName)
     }),
-    agentType: 'musecode',
+    agentType: 'muse',
     toolName: snapshot.toolName,
     toolInput: snapshot.toolInput,
     lastAssistantMessage: snapshot.lastAssistantMessage,

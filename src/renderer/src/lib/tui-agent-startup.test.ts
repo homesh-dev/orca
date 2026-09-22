@@ -144,16 +144,16 @@ describe('buildAgentStartupPlan', () => {
     ).toBe("traecli -- 'help me name this config'")
   })
 
-  it('passes the prompt to MuseCode as a positional argv', () => {
+  it('passes the prompt to Muse as a positional argv', () => {
     expect(
       buildAgentStartupPlan({
-        agent: 'musecode',
+        agent: 'muse',
         prompt: 'Summarize the failing tests',
         cmdOverrides: {},
         platform: 'linux'
       })
     ).toEqual({
-      agent: 'musecode',
+      agent: 'muse',
       launchCommand: "muse 'Summarize the failing tests'",
       expectedProcess: 'muse',
       followupPrompt: null,

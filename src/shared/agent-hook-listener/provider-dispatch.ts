@@ -22,7 +22,7 @@ import { normalizeCopilotEvent } from './providers/copilot-events'
 import { normalizeHermesEvent } from './providers/hermes-events'
 import { normalizeDevinEvent } from './providers/devin-events'
 import { normalizeKimiEvent } from './providers/kimi-events'
-import { normalizeMusecodeEvent } from './providers/musecode-events'
+import { normalizeMuseEvent } from './providers/muse-events'
 
 export type ProviderDispatchResult = {
   payload: ParsedAgentStatusPayload | null
@@ -150,8 +150,8 @@ export function normalizeProviderEvent(input: {
     case 'kimi':
       payload = normalizeKimiEvent(state, eventName, promptText, paneKey, hookPayload)
       break
-    case 'musecode':
-      payload = normalizeMusecodeEvent(state, eventName, promptText, paneKey, hookPayload)
+    case 'muse':
+      payload = normalizeMuseEvent(state, eventName, promptText, paneKey, hookPayload)
       break
   }
 

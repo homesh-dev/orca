@@ -237,12 +237,12 @@ export function buildSkillDiscoverySources(
     // default); project skills are the canonical `.agents/skills` root already
     // covered by home-agents/repo-agents, so no agent-specific repo source.
     source(
-      'home-musecode',
-      'MuseCode home',
+      'home-muse',
+      'Muse home',
       pathApi.join(home, '.config', 'muse', 'skills'),
       'home',
       ['agent-skills'],
-      'musecode'
+      'muse'
     )
   ]
 

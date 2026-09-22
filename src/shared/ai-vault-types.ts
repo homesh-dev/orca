@@ -21,7 +21,7 @@ export const AI_VAULT_AGENTS = [
   'droid',
   'cline',
   'kimi',
-  'musecode'
+  'muse'
 ] as const satisfies readonly TuiAgent[]
 
 // Why: the aiVault.listSessions RPC schema CLAMPS scopePaths to this bound
@@ -68,7 +68,7 @@ export const AI_VAULT_AGENT_LABELS = {
   droid: 'Droid',
   cline: 'Cline',
   kimi: 'Kimi',
-  musecode: 'MuseCode'
+  muse: 'Muse'
 } as const satisfies Record<AiVaultAgent, string>
 
 export type AiVaultSessionPreviewMessage = {

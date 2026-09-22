@@ -18,7 +18,7 @@ export const RESUMABLE_TUI_AGENTS = [
   'prime-agent',
   'copilot',
   'kimi',
-  'musecode'
+  'muse'
 ] as const satisfies readonly TuiAgent[]
 
 export type ResumableTuiAgent = (typeof RESUMABLE_TUI_AGENTS)[number]
@@ -227,8 +227,8 @@ export function extractAgentProviderSession(
       const id = readSessionId(payload, ['session_id', 'sessionId'])
       return id ? { key: 'session_id', id } : null
     }
-    // Why: MuseCode posts a Claude-shaped `session_id` (verified against muse 1.0.3).
-    case 'musecode': {
+    // Why: Muse posts a Claude-shaped `session_id` (verified against muse 1.0.3).
+    case 'muse': {
       const id = readSessionId(payload, ['session_id'])
       return id ? withTranscriptPath({ key: 'session_id', id }, payload) : null
     }
@@ -304,8 +304,8 @@ export function getAgentResumeArgv(
     // Why: Kimi resumes by id with --session; sessions are work-dir-scoped (enforced by callers).
     case 'kimi':
       return providerSession.key === 'session_id' ? ['kimi', '--session', id] : null
-    // Why: `muse resume <uuid>` reopens the session (verified against muse 1.0.3 `--help`).
-    case 'musecode':
+    // Why: `muse resume <uuid>` reopens the session (verified against muse 1.3.0 `--help`).
+    case 'muse':
       return providerSession.key === 'session_id' ? ['muse', 'resume', id] : null
   }
 }

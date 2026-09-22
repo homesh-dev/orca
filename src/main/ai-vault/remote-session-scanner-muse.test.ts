@@ -3,10 +3,10 @@ import { getRemoteHostPlatform } from '../ssh/ssh-remote-platform'
 import { scanRemoteAiVaultSessions } from './remote-session-scanner'
 import { MemoryRemoteProvider, jsonLines } from './remote-session-scanner-test-fixtures'
 
-describe('scanRemoteAiVaultSessions musecode', () => {
-  it('discovers MuseCode transcripts under the remote XDG sessions root', async () => {
+describe('scanRemoteAiVaultSessions muse', () => {
+  it('discovers Muse transcripts under the remote XDG sessions root', async () => {
     const provider = new MemoryRemoteProvider()
-    const sessionDir = '/home/ada/.local/share/muse/sessions/2026/07/04/musecode-remote'
+    const sessionDir = '/home/ada/.local/share/muse/sessions/2026/07/04/muse-remote'
     provider.addFile(
       `${sessionDir}/session.jsonl`,
       jsonLines([
@@ -22,7 +22,7 @@ describe('scanRemoteAiVaultSessions musecode', () => {
           recorded_at: 1780000001000000,
           payload: {
             intent_id: 'intent-remote',
-            refill_blocks: [{ kind: 'text', text: 'Remote musecode title' }]
+            refill_blocks: [{ kind: 'text', text: 'Remote muse title' }]
           }
         },
         {
@@ -57,9 +57,9 @@ describe('scanRemoteAiVaultSessions musecode', () => {
     expect(result.sessions[0]).toMatchObject({
       executionHostId: 'ssh:dev-box',
       executionHostPlatform: 'linux',
-      agent: 'musecode',
-      sessionId: 'musecode-remote',
-      title: 'Remote musecode title',
+      agent: 'muse',
+      sessionId: 'muse-remote',
+      title: 'Remote muse title',
       model: 'muse-spark-remote',
       filePath: `${sessionDir}/session.jsonl`
     })

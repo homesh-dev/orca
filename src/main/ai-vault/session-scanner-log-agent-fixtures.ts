@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import {
-  writeMusecodeScannerFixture,
+  writeMuseScannerFixture,
   writeOmpScannerFixture,
   writePrimeAgentScannerFixture
 } from './session-scanner-test-fixtures'
@@ -129,7 +129,7 @@ export async function writeLogAgentFixtures(
 
   const ompSessionFile = await writeOmpScannerFixture(roots.ompSessionsDir)
   const primeAgentSessionFile = await writePrimeAgentScannerFixture(roots.primeAgentSessionsDir)
-  await writeMusecodeScannerFixture(roots.musecodeSessionsDir)
+  await writeMuseScannerFixture(roots.museSessionsDir)
 
   await mkdir(roots.droidSessionsDir, { recursive: true })
   await writeFile(

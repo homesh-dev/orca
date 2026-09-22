@@ -25,7 +25,7 @@ const WELL_KNOWN_LABELS: Record<string, string> = {
   devin: 'Devin',
   ante: 'Ante',
   trae: 'Trae',
-  musecode: 'MuseCode',
+  muse: 'Muse',
   kimi: 'Kimi'
 }
 

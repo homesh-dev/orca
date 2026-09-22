@@ -54,7 +54,7 @@ const AGENT_HOOK_SOURCES = [
   'hermes',
   'devin',
   'kimi',
-  'musecode'
+  'muse'
 ] as const
 
 export type AgentHookSource = (typeof AGENT_HOOK_SOURCES)[number]

@@ -52,8 +52,8 @@ export const SKILLS_CLI_AGENT_KEY_BY_TUI_AGENT = {
   ante: null,
   // Why: Orca detects trae by `traecli`, an alias only TRAE CN ships.
   trae: 'trae-cn',
-  // Why: the skills CLI has no known MuseCode key; null drops it to the universal target.
-  musecode: null
+  // Why: the skills CLI has no known Muse key; null drops it to the universal target.
+  muse: null
 } satisfies Record<TuiAgent, string | null>
 
 /**

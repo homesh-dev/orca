@@ -95,7 +95,7 @@ function agentForNormalizedProcess(normalized: string): TuiAgent | undefined {
     return PROCESS_TO_AGENT.get('grok')
   }
   // Why: the `muse` launcher execs a versioned sibling binary
-  // (`muse-bin-1.0.3-R2198.1`, comm-truncated to `muse-bin-1.0.3-R`), so the
+  // (`muse-bin-1.3.0-R3401.1`, comm-truncated to `muse-bin-1.3.0-R`), so the
   // live foreground process never carries the launch name.
   if (normalized.startsWith('muse-bin-')) {
     return PROCESS_TO_AGENT.get('muse')

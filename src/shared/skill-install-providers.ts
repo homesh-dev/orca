@@ -15,7 +15,7 @@ export type SkillInstallProviderId =
   | 'trae'
   | 'grok'
   | 'aug'
-  | 'musecode'
+  | 'muse'
 
 export type SkillInstallProviderDefinition = {
   id: SkillInstallProviderId
@@ -86,8 +86,8 @@ export const SKILL_INSTALL_PROVIDERS: readonly SkillInstallProviderDefinition[] 
     // Why: user skills live under XDG config home (`~/.config/muse/skills` by
     // default); project skills are the canonical `.agents/skills` root, so no
     // workspace placement of its own.
-    id: 'musecode',
-    displayName: 'MuseCode',
+    id: 'muse',
+    displayName: 'Muse',
     globalSegments: ['.config', 'muse', 'skills'],
     workspaceSegments: null
   }

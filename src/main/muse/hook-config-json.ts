@@ -6,12 +6,25 @@ import { isPlainObject } from '../agent-hooks/installer-utils'
 // and formatting on write — a parse/stringify round trip would drop comments.
 // muse hard-fails without `"schema_version": 1`, but install only sets
 // `managed_hooks_path` and never touches the version key.
-export type MusecodeSettingsSource = {
+export type MuseSettingsSource = {
   text: string | null
   config: Record<string, unknown>
 }
 
-export function parseMusecodeSettingsText(
+export const MUSE_MANAGED_HOOK_ENV_VARS = [
+  'ORCA_AGENT_HOOK_PORT',
+  'ORCA_AGENT_HOOK_TOKEN',
+  'ORCA_AGENT_HOOK_ENV',
+  'ORCA_AGENT_HOOK_VERSION',
+  'ORCA_AGENT_HOOK_TRANSPORT',
+  'ORCA_AGENT_HOOK_ENDPOINT',
+  'ORCA_PANE_KEY',
+  'ORCA_TAB_ID',
+  'ORCA_WORKTREE_ID',
+  'ORCA_AGENT_LAUNCH_TOKEN'
+] as const
+
+export function parseMuseSettingsText(
   text: string,
   diagnosticName: string
 ): Record<string, unknown> | null {
@@ -29,7 +42,7 @@ export function parseMusecodeSettingsText(
   return isPlainObject(parsed) ? (parsed as Record<string, unknown>) : null
 }
 
-export function readMusecodeSettingsSource(configPath: string): MusecodeSettingsSource | null {
+export function readMuseSettingsSource(configPath: string): MuseSettingsSource | null {
   if (!existsSync(configPath)) {
     return { text: null, config: {} }
   }
@@ -39,11 +52,11 @@ export function readMusecodeSettingsSource(configPath: string): MusecodeSettings
   } catch {
     return null
   }
-  const config = parseMusecodeSettingsText(text, 'MuseCode settings.json')
+  const config = parseMuseSettingsText(text, 'Muse settings.json')
   return config === null ? null : { text, config }
 }
 
-export function serializeMusecodeSettings(
+export function serializeMuseSettings(
   originalText: string | null,
   managedHooksPath: string | undefined
 ): string {
@@ -53,6 +66,7 @@ export function serializeMusecodeSettings(
     const config: Record<string, unknown> = { schema_version: 1 }
     if (managedHooksPath !== undefined) {
       config.managed_hooks_path = managedHooksPath
+      config.managed_hooks_env_vars = MUSE_MANAGED_HOOK_ENV_VARS
     }
     return `${JSON.stringify(config, null, 2)}\n`
   }
@@ -73,6 +87,26 @@ export function serializeMusecodeSettings(
         formattingOptions: { insertSpaces: true, tabSize: 2 }
       })
     )
+  }
+  if (managedHooksPath !== undefined) {
+    const withPointer = parseJsonc(text) as Record<string, unknown> | undefined
+    const currentEnvVars = Array.isArray(withPointer?.managed_hooks_env_vars)
+      ? withPointer.managed_hooks_env_vars.filter(
+          (value): value is string => typeof value === 'string'
+        )
+      : []
+    const managedEnvVars = [...new Set([...currentEnvVars, ...MUSE_MANAGED_HOOK_ENV_VARS])]
+    if (
+      !Array.isArray(withPointer?.managed_hooks_env_vars) ||
+      managedEnvVars.length !== currentEnvVars.length
+    ) {
+      text = applyEdits(
+        text,
+        modify(text, ['managed_hooks_env_vars'], managedEnvVars, {
+          formattingOptions: { insertSpaces: true, tabSize: 2 }
+        })
+      )
+    }
   }
   return text
 }

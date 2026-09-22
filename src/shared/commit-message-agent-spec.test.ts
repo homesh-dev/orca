@@ -37,7 +37,7 @@ describe('COMMIT_MESSAGE_AGENT_SPECS', () => {
       'copilot',
       'cursor',
       'kimi',
-      'musecode',
+      'muse',
       'omp',
       'opencode',
       'opencode2',
@@ -79,8 +79,8 @@ describe('COMMIT_MESSAGE_AGENT_SPECS', () => {
     ])
   })
 
-  it('runs MuseCode headlessly without workspace mutation', () => {
-    const spec = COMMIT_MESSAGE_AGENT_SPECS.musecode!
+  it('runs Muse headlessly without workspace mutation', () => {
+    const spec = COMMIT_MESSAGE_AGENT_SPECS.muse!
 
     expect(spec.binary).toBe('muse')
     expect(spec.buildArgs({ prompt: 'Write a commit message', model: 'default' })).toEqual([

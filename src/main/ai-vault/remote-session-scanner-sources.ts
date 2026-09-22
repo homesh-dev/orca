@@ -8,7 +8,7 @@ import { isAntigravityTranscriptPath } from './session-scanner-antigravity-paths
 import { parseCodexSessionContent } from './session-scanner-codex-parser'
 import { parseDroidSessionContent } from './session-scanner-droid-parser'
 import { parseMessageGraphSessionContent } from './session-scanner-graph-parsers'
-import { parseMusecodeSessionContent } from './session-scanner-musecode-parser'
+import { parseMuseSessionContent } from './session-scanner-muse-parser'
 import { parseClaudeSessionContent } from './session-scanner-primary-parsers'
 import { parseGeminiSessionContent } from './session-scanner-gemini-parsers'
 import { parseCopilotSessionContent } from './session-scanner-copilot-parser'
@@ -35,6 +35,9 @@ type RemoteContentParser<T = string> = (
   // Line-based parsers iterate cancellably; whole-document parsers ignore it.
   signal?: AbortSignal
 ) => Promise<AiVaultSession | null> | AiVaultSession | null
+
+const sessionSegments = (agent: 'pi' | 'omp'): string[] =>
+  normalizeAgentSessionsDir(`/.${agent}/agent/sessions`, `.${agent}`).split('/').filter(Boolean)
 
 export function remoteSessionSources(
   remoteHome: string,
@@ -92,9 +95,9 @@ export function remoteSessionSources(
     ),
     remoteDevinSource(remoteHome, hostPlatform),
     remoteDevinSource(remoteHome, hostPlatform, 'agent_logs'),
-    jsonlSource('pi', remoteHome, hostPlatform, remotePiSessionsSegments(), piParser),
+    jsonlSource('pi', remoteHome, hostPlatform, sessionSegments('pi'), piParser),
     {
-      ...jsonlSource('omp', remoteHome, hostPlatform, remoteOmpSessionsSegments(), ompParser),
+      ...jsonlSource('omp', remoteHome, hostPlatform, sessionSegments('omp'), ompParser),
       // Same posture as Claude above: OMP stores task-subagent transcripts in
       // the session's same-named artifact dir; the walk supplies counts and the
       // partition keeps the children out of the top-level list (#9330).
@@ -108,11 +111,11 @@ export function remoteSessionSources(
       primeAgentParser
     ),
     jsonlSource(
-      'musecode',
+      'muse',
       remoteHome,
       hostPlatform,
       ['.local', 'share', 'muse', 'sessions'],
-      parseMusecodeSessionContent,
+      parseMuseSessionContent,
       // Why: each session dir holds session.jsonl plus .log/.sqlite3 sidecars;
       // match only the transcript (same predicate as local discovery).
       (path) => remotePathSegments(path).at(-1) === 'session.jsonl'
@@ -314,14 +317,6 @@ function openClawParser(
 
 function remotePathSegments(path: string): string[] {
   return path.replace(/\\/g, '/').split('/').filter(Boolean)
-}
-
-function remotePiSessionsSegments(): string[] {
-  return normalizeAgentSessionsDir('/.pi/agent/sessions', '.pi').split('/').filter(Boolean)
-}
-
-function remoteOmpSessionsSegments(): string[] {
-  return normalizeAgentSessionsDir('/.omp/agent/sessions', '.omp').split('/').filter(Boolean)
 }
 
 // Why: remote roots are posix regardless of the client platform, so these stay literal

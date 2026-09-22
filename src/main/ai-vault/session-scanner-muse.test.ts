@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { scanAiVaultSessions } from './session-scanner'
-import { isolatedScanRoots, writeMusecodeScannerFixture } from './session-scanner-test-fixtures'
+import { isolatedScanRoots, writeMuseScannerFixture } from './session-scanner-test-fixtures'
 
 let tempRoots: string[] = []
 
@@ -12,26 +12,26 @@ afterEach(async () => {
   tempRoots = []
 })
 
-describe('scanAiVaultSessions musecode', () => {
-  it('indexes MuseCode envelopes with title, model, tokens, and resume command', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'orca-ai-vault-musecode-'))
+describe('scanAiVaultSessions muse', () => {
+  it('indexes Muse envelopes with title, model, tokens, and resume command', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'orca-ai-vault-muse-'))
     tempRoots.push(root)
     const roots = isolatedScanRoots(root)
-    const sessionFile = await writeMusecodeScannerFixture(roots.musecodeSessionsDir)
+    const sessionFile = await writeMuseScannerFixture(roots.museSessionsDir)
 
     const result = await scanAiVaultSessions({ ...roots, platform: 'darwin', limit: 20 })
 
     expect(result.issues).toEqual([])
     expect(result.sessions).toHaveLength(1)
     const session = result.sessions[0]
-    expect(session.agent).toBe('musecode')
-    expect(session.sessionId).toBe('musecode-session')
-    expect(session.title).toBe('Musecode vault title')
-    expect(session.cwd).toBe('/tmp/musecode')
+    expect(session.agent).toBe('muse')
+    expect(session.sessionId).toBe('muse-session')
+    expect(session.title).toBe('Muse vault title')
+    expect(session.cwd).toBe('/tmp/muse')
     expect(session.model).toBe('muse-spark-test')
     expect(session.totalTokens).toBe(15)
     expect(session.messageCount).toBe(2)
     expect(session.filePath).toBe(sessionFile)
-    expect(session.resumeCommand).toBe("cd '/tmp/musecode' && muse resume 'musecode-session'")
+    expect(session.resumeCommand).toBe("cd '/tmp/muse' && muse resume 'muse-session'")
   })
 })

@@ -8,7 +8,7 @@ import {
   finalizeSession,
   updateTimeline
 } from './session-scanner-accumulator'
-import { musecodeSessionIdFromFilePath } from './session-scanner-musecode-paths'
+import { museSessionIdFromFilePath } from './session-scanner-muse-paths'
 import {
   remoteSessionContentLines,
   type RemoteSessionContent
@@ -29,7 +29,7 @@ type ParserSessionOptions = {
   executionHostPlatform?: NodeJS.Platform | null
 }
 
-type MusecodeRecord = {
+type MuseRecord = {
   recordType: string | null
   payloadType: string | null
   recordedAtMs: number | null
@@ -39,7 +39,7 @@ type MusecodeRecord = {
 // Why: `recorded_at` is microseconds since epoch; the shared timeline helpers
 // take milliseconds (or ISO strings), so convert here. Values below the
 // microsecond floor fall through to the shared parser (seconds/ISO).
-function musecodeTimestampMs(value: unknown): number | null {
+function museTimestampMs(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value) && value >= 1e14) {
     return Math.floor(value / 1000)
   }
@@ -47,7 +47,7 @@ function musecodeTimestampMs(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-function unwrapMusecodeRecords(line: string): MusecodeRecord[] {
+function unwrapMuseRecords(line: string): MuseRecord[] {
   const envelope = parseJsonObject(line)
   if (!envelope) {
     return []
@@ -57,7 +57,7 @@ function unwrapMusecodeRecords(line: string): MusecodeRecord[] {
   const rawRecords: unknown[] = Array.isArray(envelope.children)
     ? envelope.children.map((child) => asRecord(child)?.record_json)
     : [envelope]
-  const records: MusecodeRecord[] = []
+  const records: MuseRecord[] = []
   for (const raw of rawRecords) {
     const record = typeof raw === 'string' ? parseJsonObject(raw) : asRecord(raw)
     if (!record) {
@@ -66,7 +66,7 @@ function unwrapMusecodeRecords(line: string): MusecodeRecord[] {
     records.push({
       recordType: extractString(record.record_type),
       payloadType: extractString(record.payload_type),
-      recordedAtMs: musecodeTimestampMs(record.recorded_at),
+      recordedAtMs: museTimestampMs(record.recorded_at),
       payload: asRecord(record.payload)
     })
   }
@@ -134,9 +134,9 @@ function foldUserTurn(
   addPreviewContent(accumulator, 'user', text, timestampMs ?? undefined)
 }
 
-function foldMusecodeRecord(
+function foldMuseRecord(
   accumulator: SessionAccumulator,
-  record: MusecodeRecord,
+  record: MuseRecord,
   dedupe: { text: string | null; ms: number | null }
 ): void {
   if (record.recordedAtMs !== null) {
@@ -207,7 +207,7 @@ function foldSessionEvent(
   }
 }
 
-async function foldMusecodeContent(
+async function foldMuseContent(
   accumulator: SessionAccumulator,
   content: RemoteSessionContent,
   signal?: AbortSignal
@@ -217,18 +217,18 @@ async function foldMusecodeContent(
     if (!line.trim()) {
       continue
     }
-    for (const record of unwrapMusecodeRecords(line)) {
-      foldMusecodeRecord(accumulator, record, dedupe)
+    for (const record of unwrapMuseRecords(line)) {
+      foldMuseRecord(accumulator, record, dedupe)
     }
   }
 }
 
-export async function parseMusecodeSessionFile(
+export async function parseMuseSessionFile(
   file: FileWithMtime,
   platform: NodeJS.Platform = process.platform,
   messages?: TranscriptMessageSink
 ): Promise<AiVaultSession | null> {
-  return parseMusecodeSessionRecord(
+  return parseMuseSessionRecord(
     file,
     await wslGatedReadFile(file.path, 'utf-8', 'scan'),
     platform,
@@ -237,17 +237,17 @@ export async function parseMusecodeSessionFile(
   )
 }
 
-export function parseMusecodeSessionContent(
+export function parseMuseSessionContent(
   file: FileWithMtime,
   content: RemoteSessionContent,
   platform: NodeJS.Platform = process.platform,
   options: ParserSessionOptions = {},
   signal?: AbortSignal
 ): Promise<AiVaultSession | null> {
-  return parseMusecodeSessionRecord(file, content, platform, options, undefined, signal)
+  return parseMuseSessionRecord(file, content, platform, options, undefined, signal)
 }
 
-async function parseMusecodeSessionRecord(
+async function parseMuseSessionRecord(
   file: FileWithMtime,
   content: RemoteSessionContent,
   platform: NodeJS.Platform,
@@ -256,11 +256,11 @@ async function parseMusecodeSessionRecord(
   signal?: AbortSignal
 ): Promise<AiVaultSession | null> {
   const accumulator = createAccumulator({
-    agent: 'musecode',
+    agent: 'muse',
     file,
-    sessionId: musecodeSessionIdFromFilePath(file.path),
+    sessionId: museSessionIdFromFilePath(file.path),
     messages
   })
-  await foldMusecodeContent(accumulator, content, signal)
+  await foldMuseContent(accumulator, content, signal)
   return finalizeSession(accumulator, platform, options)
 }

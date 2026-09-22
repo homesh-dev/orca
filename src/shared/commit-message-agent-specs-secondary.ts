@@ -110,9 +110,9 @@ export function buildSecondaryCommitMessageAgentSpecs({
       ],
       defaultModelId: 'default'
     },
-    musecode: {
-      id: 'musecode',
-      label: 'MuseCode',
+    muse: {
+      id: 'muse',
+      label: 'Muse',
       binary: 'muse',
       promptDelivery: 'argv',
       buildArgs: ({ prompt, model, thinkingLevel }) => [

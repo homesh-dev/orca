@@ -37,6 +37,7 @@ describe('COMMIT_MESSAGE_AGENT_SPECS', () => {
       'copilot',
       'cursor',
       'kimi',
+      'musecode',
       'omp',
       'opencode',
       'opencode2',
@@ -75,6 +76,21 @@ describe('COMMIT_MESSAGE_AGENT_SPECS', () => {
     expect(COMMIT_MESSAGE_AGENT_SPECS.kimi?.models.map((m) => m.id)).toEqual([
       'default',
       'kimi-code/kimi-for-coding'
+    ])
+  })
+
+  it('runs MuseCode headlessly without workspace mutation', () => {
+    const spec = COMMIT_MESSAGE_AGENT_SPECS.musecode!
+
+    expect(spec.binary).toBe('muse')
+    expect(spec.buildArgs({ prompt: 'Write a commit message', model: 'default' })).toEqual([
+      'exec',
+      '--disable-write',
+      '--disable-shell',
+      '--disable-web-tools',
+      '--approval-mode',
+      'never',
+      'Write a commit message'
     ])
   })
 

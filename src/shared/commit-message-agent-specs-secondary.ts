@@ -110,6 +110,27 @@ export function buildSecondaryCommitMessageAgentSpecs({
       ],
       defaultModelId: 'default'
     },
+    musecode: {
+      id: 'musecode',
+      label: 'MuseCode',
+      binary: 'muse',
+      promptDelivery: 'argv',
+      buildArgs: ({ prompt, model, thinkingLevel }) => [
+        'exec',
+        '--disable-write',
+        '--disable-shell',
+        '--disable-web-tools',
+        '--approval-mode',
+        'never',
+        ...(model && model !== 'default' ? ['--model', model] : []),
+        ...(thinkingLevel ? ['--reasoning-effort', thinkingLevel] : []),
+        prompt
+      ],
+      singletonOptions: [['--model'], ['--reasoning-effort']],
+      modelSource: 'static',
+      models: [{ id: 'default', label: 'Config default' }],
+      defaultModelId: 'default'
+    },
     copilot: {
       id: 'copilot',
       label: 'GitHub Copilot',

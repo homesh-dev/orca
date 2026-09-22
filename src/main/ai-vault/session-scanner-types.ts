@@ -145,6 +145,7 @@ export type SessionAccumulator = {
   // Recoverable signal for a zero-turn transcript (see AiVaultSession).
   queuedMessageCount: number
   subagentTranscriptCount: number
+  earliestTimestampMs: number
   latestTimestampMs: number
 }
 

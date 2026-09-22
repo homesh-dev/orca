@@ -9,6 +9,10 @@ import {
   updateTimeline
 } from './session-scanner-accumulator'
 import { musecodeSessionIdFromFilePath } from './session-scanner-musecode-paths'
+import {
+  remoteSessionContentLines,
+  type RemoteSessionContent
+} from './remote-session-content-lines'
 import type { TranscriptMessageSink } from './session-transcript-consumers'
 import {
   arrayValue,
@@ -203,9 +207,13 @@ function foldSessionEvent(
   }
 }
 
-function foldMusecodeContent(accumulator: SessionAccumulator, content: string): void {
+async function foldMusecodeContent(
+  accumulator: SessionAccumulator,
+  content: RemoteSessionContent,
+  signal?: AbortSignal
+): Promise<void> {
   const dedupe = { text: null as string | null, ms: null as number | null }
-  for (const line of content.split('\n')) {
+  for await (const line of remoteSessionContentLines(content, signal)) {
     if (!line.trim()) {
       continue
     }
@@ -231,26 +239,28 @@ export async function parseMusecodeSessionFile(
 
 export function parseMusecodeSessionContent(
   file: FileWithMtime,
-  content: string,
+  content: RemoteSessionContent,
   platform: NodeJS.Platform = process.platform,
-  options: ParserSessionOptions = {}
-): AiVaultSession | null {
-  return parseMusecodeSessionRecord(file, content, platform, options)
+  options: ParserSessionOptions = {},
+  signal?: AbortSignal
+): Promise<AiVaultSession | null> {
+  return parseMusecodeSessionRecord(file, content, platform, options, undefined, signal)
 }
 
-function parseMusecodeSessionRecord(
+async function parseMusecodeSessionRecord(
   file: FileWithMtime,
-  content: string,
+  content: RemoteSessionContent,
   platform: NodeJS.Platform,
   options: ParserSessionOptions,
-  messages?: TranscriptMessageSink
-): AiVaultSession | null {
+  messages?: TranscriptMessageSink,
+  signal?: AbortSignal
+): Promise<AiVaultSession | null> {
   const accumulator = createAccumulator({
     agent: 'musecode',
     file,
     sessionId: musecodeSessionIdFromFilePath(file.path),
     messages
   })
-  foldMusecodeContent(accumulator, content)
+  await foldMusecodeContent(accumulator, content, signal)
   return finalizeSession(accumulator, platform, options)
 }

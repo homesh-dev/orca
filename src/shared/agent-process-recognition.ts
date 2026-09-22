@@ -97,10 +97,7 @@ function agentForNormalizedProcess(normalized: string): TuiAgent | undefined {
   // Why: the `muse` launcher execs a versioned sibling binary
   // (`muse-bin-1.3.0-R3401.1`, comm-truncated to `muse-bin-1.3.0-R`), so the
   // live foreground process never carries the launch name.
-  if (normalized.startsWith('muse-bin-')) {
-    return PROCESS_TO_AGENT.get('muse')
-  }
-  return undefined
+  return normalized.startsWith('muse-bin-') ? PROCESS_TO_AGENT.get('muse') : undefined
 }
 
 function recognizedAgentForProcess(normalized: string): RecognizedAgentProcess | null {
@@ -331,9 +328,11 @@ export function isAgentForegroundWrapperProcess(processName: string | null | und
 }
 
 export function isRecognizedAgentType(agentType: AgentType | null | undefined): boolean {
+  if (typeof agentType !== 'string') {
+    return false
+  }
   return (
-    typeof agentType === 'string' &&
-    (AGENT_TYPE_IDS.has(agentType as TuiAgent) ||
-      agentForNormalizedProcess(normalizeProcessName(agentType)) !== undefined)
+    AGENT_TYPE_IDS.has(agentType as TuiAgent) ||
+    agentForNormalizedProcess(normalizeProcessName(agentType)) !== undefined
   )
 }

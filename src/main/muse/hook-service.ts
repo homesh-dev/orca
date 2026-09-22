@@ -144,11 +144,6 @@ function buildStatus(
 export class MuseHookService {
   async refreshManagedScripts(): Promise<void> {
     await refreshManagedScriptIfPresent(getMuseManagedScriptPath(), getManagedScript())
-    const managedHooksPath = getMuseManagedHooksPath()
-    if (existsSync(managedHooksPath)) {
-      const command = getMuseManagedCommand(getMuseManagedScriptPath())
-      writeTextFileAtomic(managedHooksPath, buildMuseManagedHooksFile(command))
-    }
   }
 
   getStatus(): AgentHookInstallStatus {

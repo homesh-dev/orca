@@ -23,6 +23,7 @@ import { HermesHookService, hermesHookService } from '../hermes/hook-service'
 import { DevinHookService, devinHookService } from '../devin/hook-service'
 import { KimiHookService, kimiHookService } from '../kimi/hook-service'
 import { openClaudeHookService } from '../openclaude/hook-service'
+import { museHookService } from '../muse/hook-service'
 import { MANAGED_AGENT_HOOK_INSTALLERS } from './managed-agent-hook-controls'
 import {
   installRemoteManagedAgentHooks,
@@ -709,7 +710,8 @@ describe('remote hook service installers', () => {
       ['copilot', copilotHookService],
       ['hermes', hermesHookService],
       ['devin', devinHookService],
-      ['kimi', kimiHookService]
+      ['kimi', kimiHookService],
+      ['muse', museHookService]
     ])
 
     // Guard against a service silently missing from the map above as new agents land.
@@ -718,13 +720,11 @@ describe('remote hook service installers', () => {
     }
 
     const registered = new Set<string>(REMOTE_MANAGED_HOOK_INSTALLER_AGENTS)
-    const missing: string[] = []
     for (const [agent, service] of servicesByAgent) {
-      if (typeof service.installRemote === 'function' && !registered.has(agent)) {
-        missing.push(agent)
+      if (typeof service.installRemote === 'function') {
+        expect(registered.has(agent)).toBe(true)
       }
     }
-    expect(missing).toEqual([])
   })
 
   it('installs Droid and Copilot when running the aggregate remote installer (issue #7253)', async () => {
